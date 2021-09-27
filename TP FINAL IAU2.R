@@ -24,6 +24,7 @@
 #Para ello nos enfocaremos en responder la siguiente pregunta: ¿Cuál es la relación entre al transporte público, más precisamente al subte y la venta de dptos en CABA? 
 #En este sentido, procederemos a descargar la base de datos de Properati para observar los departamentos en venta y los datos del Cronista  para verificar los valores de los departamentos al día de hoy.
 
+#3.4.
 #Base de datos de Properati 2020_ departamentos en venta. 
 
 departamentos.en.venta.2020 <- read.csv("Data/amba_properati_jun_jul_2020.csv", header=TRUE, sep=",",stringsAsFactors = TRUE)
@@ -31,7 +32,6 @@ departamentos.en.venta.2020 <- read.csv("Data/amba_properati_jun_jul_2020.csv", 
 departamentos.en.venta.2020
 
 #A continuación limpiaremos el dataset, para quedarnos con las propiedades en venta en CABA y eliminar los posibles NA.  
-
 
 departamentos.en.venta.2020 <- departamentos.en.venta.2020 %>% 
   filter(provincia == "CABA" & operation_type == "Venta")
@@ -53,7 +53,6 @@ library(stringr)
 # Primero cargamos el URL de la pagina web
 
 url <- "https://www.cronista.com/MercadosOnline/dolar.html" 
-
 
 # Ahora vamos a ir importando la tabla por columnas
 # Comenzamos por importar los datos que nos seran utiles para nuestra tabla. 
@@ -95,7 +94,6 @@ USDBlue_ago21 <- mutate(cotizacionDB, fecha = "Agosto 21")
 
 write.csv(USDBlue_ago21, "cotizacion.csv")
 
-
 #Mapa - Barrios de CABA. 
 #Previo a la carga del mapa, instalaremos otras librerías que nos permitan cargarlo y mapearlo. 
 
@@ -122,4 +120,21 @@ subte <- read_sf("Data/estaciones-de-subte.shp")
 #A continuación realizaremos el mismo procedimiento hecho para los barrios, para los subtes.
 
 subte <- st_transform(subte, crs=caba_proj)
+
+#Siguiendo esta linea procederemos a incorporar los datos del Cronista en el dataset de Properati.
+
+names (departamentos.en.venta.2020)[8] = "moneda"
+
+departamentos.en.venta.2020  <- departamentos.en.venta.2020  %>% 
+  mutate(moneda = str_replace_all(moneda, "USD", "USD BLUE"))
+
+names (USDBlue_ago21)[1] = "moneda"
+
+USDBlue_ago21  <- USDBlue_ago21  %>% 
+  mutate(moneda = str_replace_all(moneda, "DÓLAR BLUE", "USD BLUE"))
+
+departamentos.en.venta.2020.unido <- left_join(USDBlue_ago21, departamentos.en.venta.2020, by="moneda")
+
+
+
 
