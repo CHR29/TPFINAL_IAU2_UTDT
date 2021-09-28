@@ -135,6 +135,139 @@ USDBlue_ago21  <- USDBlue_ago21  %>%
 
 departamentos.en.venta.2020.unido <- left_join(USDBlue_ago21, departamentos.en.venta.2020, by="moneda")
 
+#A continuación agregaremos una nueva columna que nos indique el precio en pesos que se vendió el departamento al día de: 26.9.2021
+
+departamentos.en.venta.2020.pesos <- departamentos.en.venta.2020.unido %>% 
+  mutate (departamentos.en.venta.2020.unido, precioArg= price*valor)%>%
+  mutate (departamentos.en.venta.2020.unido, precioXm2= price/surface_total)
+
+#Una vez más limpiaremos nuesro Dataset 
+
+departamentos.en.venta.2020.pesos <- select(departamentos.en.venta.2020.pesos, -fecha, -created_on)
+
+#Al tener los datos unidos en tablas y limpios, empezaremos a graficar algunos datos. 
+
+#Primero investigaremos el precio promedio por comuna 
+
+departamentos.en.venta.2020.p.promedio <- departamentos.en.venta.2020.pesos %>% 
+  mutate(price = as.numeric(price))  
+  
+departamentos.en.venta.2020.p.promedio1 <- departamentos.en.venta.2020.p.promedio %>% 
+  group_by(partido) %>% 
+  summarise(precioprom=mean(price))
+
+
+departamentos.en.venta.2020.p.promedio2 <- departamentos.en.venta.2020.p.promedio %>% 
+  group_by(partido) %>% 
+  summarise(preciopromm2=mean(precioXm2))
+
+ggplot()+
+  geom_bar(data=departamentos.en.venta.2020.p.promedio1, 
+           aes(x=reorder(partido, -precioprom),
+               weight = precioprom, fill=precioprom))+
+  coord_flip() + 
+  labs(title = "PRECIO PROMEDIO POR COMUNA", subtitle = "CABA", caption = "Fuente: PROPERATI", fill= "CANTIDAD",x="BARRIO",y="CANTIDAD") +
+  theme_classic()
+
+#Podemos observar que la comuna 8 presenta el precio promedio más bajo de las propiedades vendidas, mientras que la 1 el más caro. 
+
+ggplot()+
+  geom_bar(data=departamentos.en.venta.2020.p.promedio2,
+           aes(x=reorder(partido, -preciopromm2), weight= preciopromm2, fill=preciopromm2))+
+  coord_flip() + 
+  labs(title = "PRECIO PROMEDIO DEL M2 VENDIDAS POR COMUNA", subtitle = "CABA", caption = "Fuente: PROPERATI", fill= "CANTIDAD",x="BARRIO",y="CANTIDAD") +
+  theme_classic()
+
+#Podemos observar que la comuna 8 presenta el precio promedio del m2 más bajo de las propiedades vendidas, mientras que la 14 el más caro. 
+
+#Ahora analizaremos la cantidad de propiedades vendidos por comuna. 
+
+departamentos.en.venta.2020.propXcomuna <- departamentos.en.venta.2020.pesos %>%
+  group_by(partido) %>%
+  summarise(cantidad=n())
+
+ordenar <- arrange(departamentos.en.venta.2020.propXcomuna, desc(cantidad))
+
+ggplot(departamentos.en.venta.2020.propXcomuna) + geom_bar(aes(x=reorder(partido, -cantidad), weight=cantidad, fill = factor(cantidad))) + coord_flip() + labs(title = "CANTIDAD DE PROPIEDADES VENDIDAS POR COMUNA", subtitle = "CABA", caption = "Fuente: PROPERATI", fill= "CANTIDAD",x="BARRIO",y="CANTIDAD") + theme_classic()
+
+#Es posible observar que se vendieron más propiedades en la comuna 14.
+
+#Ahora analizaremos el tipo de propiedad que más se vendió.
+
+departamentos.en.venta.2020.tipo.prop <- departamentos.en.venta.2020.pesos %>%
+  group_by(property_type) %>%
+  summarise(cantidad=n())
+
+ordenar <- arrange(departamentos.en.venta.2020.tipo.prop, desc(cantidad))
+
+ggplot(departamentos.en.venta.2020.tipo.prop) + geom_bar(aes(x=property_type, weight=cantidad, fill = factor(cantidad))) + coord_flip() + labs(title = "TIPO DE PROPIEDADES VENDIDAS", subtitle = "CABA", caption = "Fuente: PROPERATI", fill= "CANTIDAD",x="BARRIO",y="CANTIDAD") + theme_classic()
+
+#Es posible observar que el tipo de propiedad que tuvo una mayor demanda en el 2020 en CABA, fueron los departamentos.
+
+#En este sentido analizaremos cuál es la comuna con mas casas, luego con más PHs y por último con más departamentos. 
+
+departamentos.en.venta.2020.tipo.propXcomuna <- departamentos.en.venta.2020.pesos %>%
+  group_by(partido, property_type) %>%
+  summarise(cantidad=n())
+
+ggplot(departamentos.en.venta.2020.tipo.propXcomuna) +  geom_bar(aes(x=property_type, weight=cantidad, fill = property_type)) + facet_wrap(~partido)+ labs(title="TIPO DE PROPIEDADES VENDIDAS POR COMUNAS", subtitle = "CABA", x="TIPO DE PROPIEDAD", y="CANTIDAD", caption="Fuente: PROPERATI") 
+
+#Es posible observar que la comuna 14 fue la que más vendió departamentos, la 12, 13 y 9 casas y la 14 y 15 PHS. 
+
+#A continuación analizaremos en qué comuna se vendieron más monoambientes. 
+
+departamentos.en.venta.2020.mono <- departamentos.en.venta.2020.pesos %>% 
+  filter(rooms=="1")
+
+departamentos.en.venta.2020.mono1 <- departamentos.en.venta.2020.mono %>% 
+  group_by(partido) %>% 
+  summarise(cantidadmonoamb=n())
+
+ggplot()+
+  geom_bar(data=departamentos.en.venta.2020.mono1, 
+           aes(x=reorder(partido, -cantidadmonoamb),
+               weight = cantidadmonoamb, fill=cantidadmonoamb))+
+  coord_flip() + 
+  labs(title = "MONOAMBIENTES POR COMUNA", subtitle = "CABA", caption = "Fuente: PROPERATI", fill= "CANTIDAD",x="BARRIO",y="CANTIDAD") +
+  theme_classic()
+
+#Es posible observar que en la comuna 14 se vendieron más monoambientes, mientras que la 7 fue la que vendió menos. 
+
+#Por último estudiaremoss en qué comuna se vendieron más de 6 ambientes.
+
+departamentos.en.venta.2020.mas6 <- departamentos.en.venta.2020.pesos %>% 
+  filter(rooms>=6)
+
+departamentos.en.venta.2020.mas.6 <- departamentos.en.venta.2020.mas6 %>% 
+  group_by(partido) %>% 
+  summarise(cantidadamb=n())
+
+ggplot()+
+  geom_bar(data=departamentos.en.venta.2020.mas.6, 
+           aes(x=reorder(partido, -cantidadamb),
+               weight = cantidadamb, fill=cantidadamb))+
+  coord_flip() + 
+  labs(title = "PROPIEDADES CON + DE 6 AMB POR COMUNA", subtitle = "CABA", caption = "Fuente: PROPERATI", fill= "CANTIDAD",x="BARRIO",y="CANTIDAD") +
+  theme_classic()
+
+#A modo de conclusión podemos observar que también la comuna 14 fue en la que más se vendieron propiedades con más de 6 ambientes, no así en la comuna 8.
+
+
+MAPAS 
+
+- mapa precio por comuna
+- mapa precio por barrio
+- mapa cercania a subtes 
+
+- cantidad de dptos vendidos x comuna
+- promedio de precio x comuna
+
+- ver relacion como conclusion final: cantidad dptos y precio promedio
+
+
+
+
+
 
 
 
