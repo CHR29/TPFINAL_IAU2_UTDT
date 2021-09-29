@@ -347,6 +347,7 @@ ggplot()+
   geom_sf(data=filter(barrios, BARRIO=="PALERMO"), colour="azure")+
   geom_sf(data = filter(lineas, LINEASUB=="LINEA D"), alpha = 0.3, linetype = "dashed") +
   geom_sf(data=estacionesc14, color = "darkolivegreen", size=3)+
+  geom_sf_text(data=estacionesc14, aes(label= ESTACION), size=2.5, color="gray8" )+
   labs(title = "Red de subte Comuna 14",
        subtitle = "Palermo",
        caption= "Fuente: Buenos Aires Data") +
