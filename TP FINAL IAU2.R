@@ -102,8 +102,7 @@ library(ggplot2)
 library(ggmap)
 options(scipen=99)
 
-barrios <- read_sf("Data/barrios_caba.shp")
-
+              
 # Primero se crea una variable con la informacion sobre el CRS proyectado para la Ciudad Autonoma de Buenos Aires.
 #Para poder configurar de la misma manera a todos los datos espaciales.
 
@@ -112,6 +111,14 @@ caba_proj = "+proj=tmerc +lat_0=-34.6297166 +lon_0=-58.4627 +k=1 +x_0=100000 +y_
 # Se los transformara al sistema de coordenadas creado para la CABA
 
 barrios <- st_transform(barrios, crs=caba_proj)
+
+#Comunas
+
+comunas.csv <- read.csv("Data/BARRIOXCOMUNA.csv", header=TRUE, sep=";",stringsAsFactors = TRUE) ????????????
+
+comuna.ok <- read_sf("Data/comunas_wgs84.shp")
+
+comuna.ok <- st_transform(comuna.ok, crs=caba_proj)
 
 #Estaciones de subte. 
 
@@ -190,7 +197,7 @@ ordenar <- arrange(departamentos.en.venta.2020.propXcomuna, desc(cantidad))
 
 ggplot(departamentos.en.venta.2020.propXcomuna) + geom_bar(aes(x=reorder(partido, -cantidad), weight=cantidad, fill = factor(cantidad))) + coord_flip() + labs(title = "CANTIDAD DE PROPIEDADES VENDIDAS POR COMUNA", subtitle = "CABA", caption = "Fuente: PROPERATI", fill= "CANTIDAD",x="BARRIO",y="CANTIDAD") + theme_classic()
 
-#Es posible observar que se vendieron más propiedades en la comuna 14.
+#Es posible observar que la comuna 14 es en la  que más se vendieron propiedades.
 
 #Ahora analizaremos el tipo de propiedad que más se vendió.
 
@@ -231,7 +238,7 @@ ggplot()+
   labs(title = "MONOAMBIENTES POR COMUNA", subtitle = "CABA", caption = "Fuente: PROPERATI", fill= "CANTIDAD",x="BARRIO",y="CANTIDAD") +
   theme_classic()
 
-#Es posible observar que en la comuna 14 se vendieron más monoambientes, mientras que la 7 fue la que vendió menos. 
+#Es posible observar que en la comuna 14 se vendieron más monoambientes, mientras que la 7 fue en la que vendió menos. 
 
 #Por último estudiaremoss en qué comuna se vendieron más de 6 ambientes.
 
@@ -252,8 +259,59 @@ ggplot()+
 
 #A modo de conclusión podemos observar que también la comuna 14 fue en la que más se vendieron propiedades con más de 6 ambientes, no así en la comuna 8.
 
+#A continuación nos detendremos a realizar un aálisis georeferenciado de la información. 
 
-MAPAS 
+#Primero mapearemos nuestro dataset de barrios para observar la geometría.
+
+ggplot(barrios)+
+  geom_sf(fill="gray75", color="white") + labs(title = "BARRIOS CABA", caption = "Fuente: Gobierno de la Ciudad")+ theme_void()
+
+#Teniendo la geometría comenzaremos a mapear las propiedades vendidas en CABA. 
+
+geoprop <- departamentos.en.venta.2020.pesos %>% 
+  st_as_sf(coords = c("lon", "lat"), crs = 4326)
+
+ggplot()+
+  geom_sf(data=barrios, fill="gray75", color="white")+
+  geom_sf(data=geoprop, aes(color=partido), alpha=0.5)+ labs(title = "PROPIEDADES VENDIDAS", subtitle = "CABA 2020", caption = "Fuente: Gobierno de la Ciudad de Buenos Aires", x = "LATITUD", y = "LONGITUD")
+
+#Continuaremos por estudiar el precio promedio de los comunas.
+
+dptos.venta.y.precio.prom.m2 <- departamentos.en.venta.2020.pesos %>%
+  left_join(departamentos.en.venta.2020.p.promedio2, by=c("partido"="partido"))
+
+geo.prom.m2 <- dptos.venta.y.precio.prom.m2 %>% 
+  st_as_sf(coords = c("lon", "lat"), crs = 4326)
+
+names (geo.prom.m2)[4] = "COMUNA"
+
+comuna <- mutate(comunas.csv, Comuna="Comuna")
+
+comuna <- mutate(comuna, COMUNA=paste(Comuna, COMUNA , sep=" "))
+
+comuna<- select(comuna, -Comuna)
+
+barrios.y.comunas <- comuna %>%
+  left_join(barrios, by=c("BARRIO"="BARRIO"))
+
+geo.byc <- barrios.y.comunas %>% 
+  st_as_sf(coords = c("lon", "lat"), crs = 4326)
+
+geo.precios <- geo.prom.m2 %>%
+st_join(geo.byc, by=c("COMUNA"="COMUNA"))
+
+
+
+
+
+ggplot()+
+  geom_sf(data=geo.prom.m2, aes(fill=preciopromm2), color="white") + labs(title = "VIVIENDA ASEQUIBLE", subtitle = "Barrios de la ciudad de Chicago", caption = "Fuente: Chicago Data Portal - https://data.cityofchicago.org/", x = "LATITUD", y = "LONGITUD") +  scale_fill_distiller(palette = "YlOrRd", direction = 1) +
+  theme_light()
+
+#En este sentido, ahora analizaremos en mayor detalle el precio promedio de los departamentos que se vendieron en 2020 separados por barrios. 
+
+
+
 
 - mapa precio por comuna
 - mapa precio por barrio
